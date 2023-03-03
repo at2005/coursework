@@ -1,10 +1,7 @@
-import logo from './logo.svg';
-
 import React from 'react';
 import { createRef } from 'react';
 // import "./Province";
 import Unit from "./Unit.js";
-import Stages from "./Stages.js";
 import Province from "./Province.js";
 
 
@@ -17,6 +14,10 @@ class NoiseBoard extends React.Component {
     this.granularity = 2;
     this.canvasRef = createRef();
     this.update_init = this.update_init.bind(this);
+
+    this.state = {
+      your_provinces : [],
+    };
 
     // map of length 16
     this.province_map = {
@@ -37,6 +38,26 @@ class NoiseBoard extends React.Component {
       "Canis Major" : null,
       "Canis Minor" : null,
     };
+
+    this.adjacency_map = {
+      "Saggitarius" : [],
+      "Perseus" : [],
+      "Eridanus" : [],
+      "Cassiopeia" : [],
+      "Cepheus" : [],
+      "Cygnus" : [],
+      "Aquila" : [],
+      "Pegasus" : [],
+      "Andromeda" : [],
+      "Orion" : [],
+      "Ursa Major" : [],
+      "Ursa Minor" : [],
+      "Local Group" : [],
+      "Sirius" : [],
+      "Canis Major" : [],
+      "Canis Minor" : [],
+    };
+
   }
 
   // different distance measures
@@ -73,7 +94,7 @@ class NoiseBoard extends React.Component {
     // scatter voronoi points randomly
     let coords = [];
     for(let i = 0; i < this.num_provinces; i++) {
-      let coord = [Math.floor(Math.random() * (this.width)), Math.floor(Math.random() * (this.height))];
+      let coord = [Math.floor(Math.random() * (this.width - 50)), Math.floor(Math.random() * (this.height - 50))];
       if(this.check_approx(coord, coords)) {
         coords[i] = coord;
       }
@@ -113,10 +134,10 @@ class NoiseBoard extends React.Component {
         let province_min = 0;
         for(let prov = 0; prov < this.num_provinces; prov++) {
           // temporary province as initial
-          let dist = 1.2 * this.manhattan_distance([i,j], provinces[prov].get_center) + this.euclidean_distance([i,j], provinces[prov].get_center) * 5.5;
+          let dist = 6.2 * this.manhattan_distance([i,j], provinces[prov].get_center) + this.euclidean_distance([i,j], provinces[prov].get_center) * 5.5;
           provinces[prov].update_dist = (dist);
           
-          if(prov == 0) {
+          if(prov === 0) {
            continue;
           }
 
@@ -164,6 +185,7 @@ class NoiseBoard extends React.Component {
       // New unit instance
       // console.log(provinces[i].get_occupier);
       if(provinces[i].occupier.is_destroyed()) { continue };
+      // console.log(provinces[i].occupier);
       this.plot_unit(provinces[i].occupier);
     } 
   }
@@ -190,7 +212,7 @@ class NoiseBoard extends React.Component {
 
   get_index_from_name(province_name, province_lst) {
     for(let i = 0; i < province_lst.length; i++) {
-      if(province_lst[i].name == province_name) {
+      if(province_lst[i].name === province_name) {
         return i;
       }
     }
@@ -206,6 +228,43 @@ class NoiseBoard extends React.Component {
 
     return [x_avg / pixel_lst.length, y_avg / pixel_lst.length];
   
+  }
+
+  // ideally only run once because super inefficient
+  map_adjacency(province_lst) {
+    for(let i = 0; i < this.adjacency_map.length; i++) {
+      this.adjacency_map[i] = [];
+    }
+
+    const min_dist = 3;
+    // iterate over any two provinces and if they are ever only separated by less than four units then assume they are adjacent
+    for(let i = 0; i < province_lst.length; i++) {
+      for(let j = 0; j < province_lst.length; j++) {
+        if(i === j) { continue; }
+        // console.log(province_lst[j].name, this.adjacency_map[province_lst[i].name]);
+        if(this.adjacency_map[province_lst[i].name].includes(province_lst[j].name) || this.adjacency_map[province_lst[j].name].includes(province_lst[i].name)) {
+          continue;
+        }
+
+        let region_lst_prov1 = province_lst[i].get_region_lst;
+        // console.log(region_lst_prov1);
+        let region_lst_prov2 = province_lst[j].get_region_lst;
+
+
+        break_point:
+        for(let reg_coord1 = 0; reg_coord1 < region_lst_prov1.length; reg_coord1+=10) {
+          for(let reg_coord2 = 0; reg_coord2 < region_lst_prov2.length; reg_coord2+=10) {
+            let dist = this.euclidean_distance(region_lst_prov1[reg_coord1], region_lst_prov2[reg_coord2]);
+            // verification and creating adjacency map
+            if(dist < min_dist) {
+              this.adjacency_map[province_lst[i].name].push(province_lst[j].name);
+              this.adjacency_map[province_lst[j].name].push(province_lst[i].name);
+              break break_point;
+            }
+          }
+        }
+      }
+    }
   }
 
 
@@ -234,8 +293,9 @@ class NoiseBoard extends React.Component {
       let occupier_unit = new Unit();
       provinces[i].set_occupier(occupier_unit);
     }
+  
 
-
+    // assign provinces to each player
     let color_lst = ["red", "blue", "green", "yellow"];
     let corner_lst = [[0,0], [0, this.height], [this.width, 0], [this.width, this.height]];
     let provinces_temp = provinces;
@@ -246,20 +306,26 @@ class NoiseBoard extends React.Component {
         let name = closest_four[j];
         let index = this.get_index_from_name(name[0], provinces_temp);
         provinces_temp[index].occupier.state.colour = color_lst[i];
+        provinces_temp[index].occupier.state.player_owner = i;
       }
     }
 
     for(let i = 0; i < provinces.length; i++) {
       // console.log(provinces[i].occupier.state.colour);
-      provinces[i].center = this.get_average_center(provinces[i].get_region_lst);
+      // provinces[i].center = this.get_average_center(provinces[i].get_region_lst);
       this.province_map[provinces[i].get_name] = provinces[i];
     }
-    
 
+    // map adjacency
+    this.map_adjacency(provinces);
+    console.log(this.adjacency_map);
+
+    // plot all units
     this.plot_all_units();
 
   }
 
+  
   // input validation
   validate_inputs(type, location_a, location_b) {
     // First input
@@ -307,7 +373,8 @@ class NoiseBoard extends React.Component {
 
     }
 
-    prov_current.occupier.move(prov_target, this.props.support_map);
+    prov_current.occupier.move(prov_target, this.props.support_map, this.adjacency_map, this.province_map);
+    this.update_your_provinces();
     this.plot_all_units();
 
 
@@ -347,9 +414,27 @@ class NoiseBoard extends React.Component {
   update_init(e) {
     e.preventDefault();
     this.plot_all_units();
+    this.update_your_provinces();
+  }
+
+
+  update_your_provinces() {
+    let your_provinces = [];
+    let provinces_all = Object.values(this.province_map);
+    for(let i = 0; i < provinces_all.length; i++) {
+      if(provinces_all[i].occupier.state.player_owner === 0) {
+        your_provinces.push(provinces_all[i].get_name);
+      }
+    }
+
+    this.setState({your_provinces: your_provinces});
+    // console.log(your_provinces);
+
   }
 
   render() {
+
+    let mapped_names = this.state.your_provinces.map((province) => <li key={province}>{province}</li>);
     return (
       <div>
       <h1>Diplomacy</h1>
@@ -367,6 +452,13 @@ class NoiseBoard extends React.Component {
         <br>
         </br>
         <br></br>
+
+        <h1>Your Provinces</h1>
+          <div>
+            <ul>
+             {mapped_names}
+            </ul>
+          </div>
       </div>
 
     </div>
@@ -377,15 +469,11 @@ class NoiseBoard extends React.Component {
 
 
 class GameBoard extends React.Component {
-  constructor(props) {
-    super(props);
-  }
-
   render() {
     return (
       <div>
         <h1>Game Board</h1>
-        <NoiseBoard height="800" width="800"/>
+        <NoiseBoard height="800" width="800" support_map={this.props.support_map}/>
       </div>
     );
   }

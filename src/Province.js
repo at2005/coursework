@@ -53,8 +53,8 @@ class Province {
 
     set_occupier(new_occupier) {
       this.occupier = new_occupier;
-      this.occupier.state.x = this.center[0];
-      this.occupier.state.y = this.center[1];
+      this.occupier.set_xy(this.center[0], this.center[1]);
+      this.occupier.state.current_province = this;
     }
   
     shares_border(other_province) {
@@ -64,7 +64,7 @@ class Province {
 
   
     is_occupied() {
-        if(this.occupier == "None") {
+        if(this.occupier === "None") {
             return false;
         }
         

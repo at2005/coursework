@@ -2,6 +2,7 @@
 import React from 'react';
 import DiplomaticStage from './DiplomaticStage.js';
 import GameBoard from './GameBoard.js';
+import AIPlayer from "./AIPlayer.js"
 
 
 class GameState extends React.Component {
@@ -14,15 +15,40 @@ class GameState extends React.Component {
         is_over: false,
         player_num: 0,
         support_graph: [[], [], [], []],
+        players: [new AIPlayer(1,1,1), new AIPlayer(1,1,1), new AIPlayer(1,1,1)],
+        current_turn: 0,
       };
       
       this.handle_order_change = this.handle_order_change.bind(this);
+    
     }
     
     componentDidMount() {
       this.setState({phase: "Diplomatic"});
+    }
+
+    handle_alliance_request(boolean_response, player, player_allied) {
+      if(boolean_response) {
+        let support_map = this.state.support_graph;
+        // console.log(support_map[Number(player)]);
+        support_map[player].push(player_allied);
+        this.setState({support_graph : support_map});
+        alert("Player " + player_allied.toString() + " accepted Player " + player.toString() + " alliance request");
+        console.log(this.state.support_graph);
+        return;
+      }
+
+      alert("Player " + player_allied.toString() + " rejected Player " + player.toString() + " alliance request");
+
+      
 
     }
+
+    handle_support_request(boolean_response, player, player_allied) {
+
+
+    }
+
     
     inc_year() {
       if(this.state.year < 2400) {
@@ -72,18 +98,17 @@ class GameState extends React.Component {
  
     // handle diplomatic orders
     handle_order_change(player, player_allied) {
+      // input validation
       if(player_allied > 3) {
         alert("Invalid Player Number");
         return;
       }
-      
-      let support_map = this.state.support_graph;
-      // console.log(support_map[Number(player)]);
-      support_map[player].push(player_allied);
-      this.setState({support_graph : support_map});
-      console.log(this.state.support_graph);
-    }
 
+      let computer = this.state.players[player_allied-1];
+      computer.accept_alliance(this.handle_alliance_request.bind(this), player, player_allied);
+
+      // console.log(this.state.support_graph);
+    }
 
     
     render() {
@@ -98,7 +123,7 @@ class GameState extends React.Component {
             <DiplomaticStage player={this.state.player_num} onChange={this.handle_order_change}/>
             <button onClick={this.inc_phase.bind(this)}>Next Stage</button>
         </div>
-        ) : <GameBoard player={this.state.player_num} support_map={this.support_graph}/>;
+        ) : <GameBoard player={this.state.player_num} support_map={this.state.support_graph}/>;
 
       return (
         <div>
