@@ -2,6 +2,45 @@
   text-align: center;
 }
 
+* {
+  background-color: bisque;
+  font-family: Arial, Helvetica, sans-serif;
+  /* transition time */
+  transition: 0.2s;
+}
+
+
+button {
+  background-color: black;
+  color: white;
+  border: 0px;
+  border-radius: 5px;
+  padding: 1%;
+  font-weight: bold;
+  margin: 1%;
+  font-size: 105%;
+}
+
+/* on button hover */
+button:hover {
+  background-color: white;
+  color: black;
+  border: 1px solid black;
+  /* scale */
+  transform: scale(1.1);
+
+}
+
+
+input {
+  color: black;
+  border: 2px solid black;
+  font-size: 105%;
+  margin: 1%;
+  border-radius: 5px;
+  
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;

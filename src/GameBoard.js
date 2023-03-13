@@ -5,21 +5,24 @@ import Unit from "./Unit.js";
 import Province from "./Province.js";
 
 
-class NoiseBoard extends React.Component {
+class GameBoard extends React.Component {
   constructor(props) {
     super(props);
     this.height = 800;
     this.width = 800;
-    this.num_provinces = 16;
+    this.num_provinces = 15;
     this.granularity = 2;
     this.canvasRef = createRef();
     this.update_init = this.update_init.bind(this);
-
+    this.plot_all_units = this.plot_all_units.bind(this);
+    this._onMouseMove = this._onMouseMove.bind(this);
+    
     this.state = {
       your_provinces : [],
+      hovering_province: null,
     };
 
-    // map of length 16
+    // map of length 15
     this.province_map = {
       "Saggitarius" : null,
       "Perseus" : null,
@@ -28,7 +31,7 @@ class NoiseBoard extends React.Component {
       "Cepheus" : null,
       "Cygnus" : null,
       "Aquila" : null,
-      "Pegasus" : null,
+      //"Pegasus" : null,
       "Andromeda" : null,
       "Orion" : null,
       "Ursa Major" : null,
@@ -47,7 +50,7 @@ class NoiseBoard extends React.Component {
       "Cepheus" : [],
       "Cygnus" : [],
       "Aquila" : [],
-      "Pegasus" : [],
+      //"Pegasus" : [],
       "Andromeda" : [],
       "Orion" : [],
       "Ursa Major" : [],
@@ -58,7 +61,33 @@ class NoiseBoard extends React.Component {
       "Canis Minor" : [],
     };
 
+  
+
+    // this.province_coord_lookup = {
+
+    // };
+
   }
+
+
+  // update current hovering province name
+  _onMouseMove(e) {
+    const canvas = this.canvasRef.current;
+    let rect = canvas.getBoundingClientRect();
+    let x_relative = e.clientX - rect.left;
+    let y_relative = e.clientY -  Math.ceil(rect.top);
+
+    let provinces = Object.keys(this.province_map);
+    for(let i = 0; i < provinces.length; i++) {
+      let prov = this.province_map[provinces[i]];
+      let center = prov.center;
+      if(this.euclidean_distance(center, [x_relative, y_relative]) <= 56) {
+        this.setState({hovering_province: provinces[i]});
+      }
+    }
+
+  }
+
 
   // different distance measures
   euclidean_distance(p1_lst, p2_lst) {
@@ -128,8 +157,8 @@ class NoiseBoard extends React.Component {
   // map each pixel to Province
   map_points() {
     var provinces = this.create_provinces();
-    for(let i = 0; i < this.height; i+=this.granularity) {
-      for(let j = 0; j < this.width; j+=this.granularity) {
+    for(let i = 0; i < this.height; i+=(this.granularity)) {
+      for(let j = 0; j < this.width; j+=(this.granularity)) {
         // iterate over each province
         let province_min = 0;
         for(let prov = 0; prov < this.num_provinces; prov++) {
@@ -206,7 +235,7 @@ class NoiseBoard extends React.Component {
     }
 
     let sorted_map = Object.entries(map_province).sort((a,b) => a[1] - b[1]);
-    return [sorted_map[0], sorted_map[1], sorted_map[2], sorted_map[3]];
+    return [sorted_map[0], sorted_map[1], sorted_map[2]];
   }
 
 
@@ -247,16 +276,20 @@ class NoiseBoard extends React.Component {
         }
 
         let region_lst_prov1 = province_lst[i].get_region_lst;
+        region_lst_prov1 = region_lst_prov1.sort(() => (Math.random() - 0.5));
         // console.log(region_lst_prov1);
         let region_lst_prov2 = province_lst[j].get_region_lst;
+        region_lst_prov2 = region_lst_prov2.sort(() => (Math.random() - 0.5));
 
 
         break_point:
-        for(let reg_coord1 = 0; reg_coord1 < region_lst_prov1.length; reg_coord1+=10) {
-          for(let reg_coord2 = 0; reg_coord2 < region_lst_prov2.length; reg_coord2+=10) {
+        for(let reg_coord1 = 0; reg_coord1 < region_lst_prov1.length; reg_coord1+=5) {
+          for(let reg_coord2 = 0; reg_coord2 < region_lst_prov2.length; reg_coord2+=5) {
             let dist = this.euclidean_distance(region_lst_prov1[reg_coord1], region_lst_prov2[reg_coord2]);
             // verification and creating adjacency map
-            if(dist < min_dist) {
+            // console.log(dist);
+            if(Math.abs(dist) < Math.abs(min_dist)) {
+              // console.log(dist);
               this.adjacency_map[province_lst[i].name].push(province_lst[j].name);
               this.adjacency_map[province_lst[j].name].push(province_lst[i].name);
               break break_point;
@@ -265,6 +298,9 @@ class NoiseBoard extends React.Component {
         }
       }
     }
+
+    this.props.create_adjacency(this.adjacency_map);
+
   }
 
 
@@ -290,23 +326,32 @@ class NoiseBoard extends React.Component {
     // assign occupier to each province
     for(let i = 0; i < provinces.length; i++) {
       // New unit instance
-      let occupier_unit = new Unit();
+      let occupier_unit = new Unit(this.plot_all_units);
       provinces[i].set_occupier(occupier_unit);
     }
   
 
     // assign provinces to each player
-    let color_lst = ["red", "blue", "green", "yellow"];
-    let corner_lst = [[0,0], [0, this.height], [this.width, 0], [this.width, this.height]];
-    let provinces_temp = provinces;
+    let color_lst = ["red", "blue", "green", "yellow", "white"];
+    let corner_lst = [[0,0], [0, this.height], [this.width, 0], [this.width, this.height], [this.width/2, this.height/2]];
+    let provinces_temp = [];
+
+    // create deep copy
+    for(let i = 0; i < provinces.length; i++) {
+      provinces_temp[i] = provinces[i];
+    }
+
     for(let i = 0; i < corner_lst.length; i++) {
       let closest_four = this.closest_provinces(corner_lst[i][0], corner_lst[i][1], provinces_temp);
       // console.log(closest_four);
       for(let j = 0; j < closest_four.length; j++) {
         let name = closest_four[j];
-        let index = this.get_index_from_name(name[0], provinces_temp);
-        provinces_temp[index].occupier.state.colour = color_lst[i];
-        provinces_temp[index].occupier.state.player_owner = i;
+        const index_to_remove = this.get_index_from_name(name[0], provinces_temp);
+        provinces_temp.splice(index_to_remove, 1);
+
+        const index = this.get_index_from_name(name[0], provinces);
+        provinces[index].occupier.state.colour = color_lst[i];
+        provinces[index].occupier.state.player_owner = i;
       }
     }
 
@@ -314,14 +359,23 @@ class NoiseBoard extends React.Component {
       // console.log(provinces[i].occupier.state.colour);
       // provinces[i].center = this.get_average_center(provinces[i].get_region_lst);
       this.province_map[provinces[i].get_name] = provinces[i];
+      // this.province_coord_lookup[provinces[i].center] = provinces[i].get_name; 
     }
+
+
+    // console.log(this.province_coord_lookup);
 
     // map adjacency
     this.map_adjacency(provinces);
-    console.log(this.adjacency_map);
+    // console.log(this.adjacency_map);
 
     // plot all units
     this.plot_all_units();
+    this.props.create_province_map(this.province_map);
+
+    if(this.props.mode === "sim") {
+      this.props.signal_move_done();
+    }
 
   }
 
@@ -373,11 +427,17 @@ class NoiseBoard extends React.Component {
 
     }
 
-    prov_current.occupier.move(prov_target, this.props.support_map, this.adjacency_map, this.province_map);
-    this.update_your_provinces();
-    this.plot_all_units();
-
-
+    // execute move
+    let is_error = prov_current.occupier.move(0, prov_target, this.props.support_map, this.adjacency_map, this.province_map, this.props.request_support_callback, this.props.logging_callback);
+    
+    // wait if error 
+    if(!is_error) {
+      this.update_your_provinces();
+      this.plot_all_units();
+      this.props.signal_move_done();
+    }
+    
+    
     // // post data to server at port 3005
     // await fetch('http://localhost:3005/write_move', { 
     //   method: 'POST',
@@ -397,6 +457,7 @@ class NoiseBoard extends React.Component {
     // );
   }
 
+  
   // for multiplayer, don't worry until later
   get_recent_move() {
     fetch('http://localhost:3005/get_move')
@@ -433,22 +494,42 @@ class NoiseBoard extends React.Component {
   }
 
   render() {
-
     let mapped_names = this.state.your_provinces.map((province) => <li key={province}>{province}</li>);
+    let owner_hover_el = null;
+    if(this.state.hovering_province) {
+      let owner = this.province_map[this.state.hovering_province].occupier.state.player_owner;
+      owner_hover_el = <h2>Owned by Player {owner}</h2>
+    }
+
+    let order_box = this.props.phase === "Order" ? (
+    <div id="order_box">
+      <h1>Order Input</h1>
+      <form>
+        <input name="unit_a_type" id="ua_type" defaultValue="Army"></input>
+        <input name="unit_a_cloc" id="ua_current" defaultValue = "Saggitarius"></input>
+        <input name="unit_a_tloc" id="ua_target" defaultValue="Perseus"></input> <br></br>
+        <button type = "submit" onClick={this.post_move.bind(this)}>Submit Order</button> <br></br>
+        <button onClick={this.update_init}>Update</button>
+        <br>
+        </br>
+      </form>
+    </div>
+  ) : (<br></br>);
+
+
     return (
       <div>
       <h1>Diplomacy</h1>
-        <canvas ref={this.canvasRef} width={this.props.width} height={this.props.height} />
 
+        <canvas ref={this.canvasRef} onMouseMove={this._onMouseMove} width={this.props.width} height={this.props.height} />
+        
         <div>
-        <h1>Order Input</h1>
-        <form>
-          <input name="unit_a_type" id="ua_type" defaultValue="Army"></input>
-          <input name="unit_a_cloc" id="ua_current" defaultValue = "Saggitarius"></input>
-          <input name="unit_a_tloc" id="ua_target" defaultValue="Perseus"></input>
-          <button type = "submit" onClick={this.post_move.bind(this)}>Submit Order</button>
-          <button onClick={this.update_init}>Update</button>
-        </form>
+        
+        {order_box}
+  
+          <h2>Hovering Province: {this.state.hovering_province}</h2>
+          {owner_hover_el}
+        
         <br>
         </br>
         <br></br>
@@ -467,16 +548,5 @@ class NoiseBoard extends React.Component {
 
 };
 
-
-class GameBoard extends React.Component {
-  render() {
-    return (
-      <div>
-        <h1>Game Board</h1>
-        <NoiseBoard height="800" width="800" support_map={this.props.support_map}/>
-      </div>
-    );
-  }
-};
 
 export default GameBoard;

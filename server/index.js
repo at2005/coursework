@@ -6,6 +6,8 @@ var fs = require('fs');
 
 let db = new sqlite3.Database('./diplomacy.db');
 
+let counter = 35;
+
 const PORT = process.env.PORT || 3005;
 
 const app = express();
@@ -14,7 +16,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
 // initialise file for storing moves
-fs.writeFile("moves.txt", "INIT\n", function(err) {console.log(err)});
+// fs.writeFile("moves.txt", "INIT\n", function(err) {console.log(err)});
 
 app.get("/", function(req, res) {
   res.send("Hello World!");
@@ -38,14 +40,17 @@ app.get("/api/get_moves", function(req, res) {
 });
 
 
-app.post("/api/write_move", function(req, res) {
-  // write to file
-  const content = (req.body.unit_a_type + " " + req.body.unit_b_type + " " + req.body.current_a + " " + req.body.current_b + " " + req.body.target_a + " " + req.body.target_b + "\n");
-  fs.writeFileSync("moves.txt", content, {flag: "a+"});
-  res.send("Success");
+app.post("/api/post_event_log", function(req, res) {
+  let data_json = req.body;
+  data_json = JSON.stringify(data_json);
+  fs.writeFile("data/moves" + counter.toString() + ".json", data_json, () => {
+    console.log("Success");
+    res.send({body: "Success"});
+  });  
+
+  counter++;
 
 });
-
 
 
 // app.post("/api", (req, res) => {

@@ -1,6 +1,6 @@
 // class UNIT -- for Fleets and Armies
 class Unit {//extends React.Component {
-    constructor(props) {
+    constructor(update_callback) {
      
       this.state = {
         type: "Army",
@@ -11,10 +11,11 @@ class Unit {//extends React.Component {
         support_units : [],
         player_owner: 0,
         colour: "red",
-      }; 
-    
-    }
+      };
 
+      this.update_board = update_callback;
+  
+    }
 
     set_xy(x, y) {
       this.state.x = x;
@@ -35,75 +36,105 @@ class Unit {//extends React.Component {
     }
   
     // movement logic
-    move(target_province, support_map, adj_map, province_map) {
-      console.log(target_province.center);
-      
+    move(player_id, target_province, support_map, adj_map, province_map, request_support_callback, logging_callback) {
+    
       let current_province_owner = this.state.player_owner;
       let target_province_owner = target_province.occupier.state.player_owner;
 
 
       // check if you are moving to your own province
       if(target_province_owner === current_province_owner) {
-        alert("You cannot move to this province, you already own it");
-        return;
+        logging_callback("You cannot move to this province, you already own it");
+        return true;
       }
 
       // check if you own fleet -- cannot move other players' fleets
-      if(current_province_owner !== 0) {
-        alert("You cannot move this fleet, it is not yours");
-        return;
+      if(current_province_owner !== player_id) {
+        logging_callback("You cannot move this fleet, it is not yours");
+        return true;
       }
-
-      // console.log(adj_map[target_province.get_name]);
-      // console.log(this.state.current_province.get_name);
 
       // check if you border the province you are moving to
       if(!(adj_map[target_province.get_name].includes(this.state.current_province.get_name))) {
-        alert("You do not border this province");
-        return;
+        logging_callback("You do not border this province");
+        return true;
       }
       
       // calculate support
       let all_bordering_target = adj_map[target_province.get_name];
-      console.log(all_bordering_target);
+ 
+      // your total support 
       let support = 1;
-      // for(let i = 0; i < all_bordering_target.length; i++) {
-      //   let bordering_province = province_map[all_bordering_target[i]];
-      //   console.log(support_map[current_province_owner.toString()]);
-      //   console.log(bordering_province.occupier.state.player_owner.toString());
-      //   if(support_map[current_province_owner.toString()].includes(bordering_province.occupier.state.player_owner.toString())) {
-      //     support++;
-      //   }
-      // }
+      // enemy total support
+      let enemy_support = 1;
 
-      console.log(adj_map);
 
+      // iterate over all bordering provinces and request support
+      for(let i = 0; i < all_bordering_target.length; i++) {
+        let bordering_province = province_map[all_bordering_target[i]];
+
+        // if you own neighbouring provinces you can support yourself
+        if(bordering_province.occupier.state.player_owner === this.state.player_owner) { 
+          logging_callback("Player " + current_province_owner.toString() + " owns a bordering province, so gave themselves support");
+          support++; 
+          continue;
+        }
+
+        // if enemy owns neighbouring provinces, then supports themselves
+        if(bordering_province.occupier.state.player_owner === target_province_owner) {
+          logging_callback("Player " + target_province_owner.toString() + " owns a bordering province, so gave themselves support");
+          enemy_support++;
+          continue;
+        }
+
+        // get support from bordering province
+        if(support_map[current_province_owner.toString()].includes(bordering_province.occupier.state.player_owner.toString())) {
+        let support_is_given = request_support_callback(this.state.current_province, target_province, bordering_province);
+          if(support_is_given) {
+            logging_callback("Support was given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + current_province_owner.toString() + " for Player " + current_province_owner.toString() + " to move to " + target_province.get_name);
+            support++;
+            continue;
+          }
+
+          logging_callback("Support was not given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + current_province_owner.toString() + " for Player " + current_province_owner.toString() + " to move to " + target_province.get_name);
+        }
+
+       
+        if(support_map[target_province_owner.toString()].includes(bordering_province.occupier.state.player_owner.toString())) {
+          let support_given_enemy = request_support_callback(this.state.current_province, target_province, bordering_province);
+          if(support_given_enemy) {
+            logging_callback("Support was given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + target_province_owner.toString() + " for Player " + target_province_owner.toString() + " to resist invasion by " + current_province_owner);
+            enemy_support++;
+            continue;
+          }
+
+            logging_callback("Support was not given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + target_province_owner.toString() + " for Player " + target_province_owner.toString() + " to resist invasion by " + current_province_owner);
+        } 
+      }
+    
       // check if you have support to move to target province
-      if(support) { 
-        // target_province.occupier.state.destroyed = true;
-        // this.state.x = target_province.get_center[0];
-        // this.state.y = target_province.get_center[1];
-        // this.state.current_province = target_province;
-        let new_unit = new Unit();
+      if(support > enemy_support) { 
+        let new_unit = new Unit(this.update_board);
         let target_province_actual = province_map[target_province.get_name];
-        console.log(target_province_actual);
-        console.log(target_province_actual.center);
-        new_unit.player_owner = current_province_owner;
+        new_unit.state.player_owner = current_province_owner;
         new_unit.state.x = target_province_actual.center[0];
         new_unit.state.y = target_province_actual.center[1];
         new_unit.state.colour = this.state.colour;
         new_unit.state.current_province = target_province;
-        console.log(new_unit);
         
         target_province_actual.set_occupier(new_unit);
-        return;
+        this.update_board();
+        logging_callback(current_province_owner.toString() + " successfully moved to this province");
+        
+        return false;
       }
 
-      alert("You cannot move to this province, you do not have enough support");
+      logging_callback(current_province_owner.toString() + " cannot move to this province, does not have enough support");
+      return true;
 
     }
 
-    //  adding support to self support list
+    // adding support to self support list
     add_support(support_unit) {
       this.state.support_units.push(support_unit);
     }
