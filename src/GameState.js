@@ -84,7 +84,6 @@ class GameState extends React.Component {
     }
 
 
-
     // callbacks to update adjacency and province maps from GameBoard component
     create_adjacency(adjacency) {
      this.setState({adjacency_map: adjacency});
@@ -186,7 +185,11 @@ class GameState extends React.Component {
             return;
           } 
 
-          this.execute_turn();
+          // don't execute computer move if multiplayer
+          if(this.state.mode !== "multi") {
+            this.execute_turn();
+          }
+
 
         });
 
@@ -252,7 +255,8 @@ class GameState extends React.Component {
   
       }
     }
- 
+    
+
     // handle diplomatic orders for human player
     handle_order_change(player, player_allied) {
       // input validation
@@ -262,8 +266,18 @@ class GameState extends React.Component {
       }
 
 
-      let computer = this.state.players[player_allied-this.state.corrective_factor];
-      computer.accept_alliance(this.handle_alliance_request.bind(this), player, player_allied);
+      if(this.state.mode !== "multi") {      
+        let computer = this.state.players[player_allied-this.state.corrective_factor];
+        computer.accept_alliance(this.handle_alliance_request.bind(this), player, player_allied);
+        return;
+      }
+
+      // for multiplayer, have pop-up menu
+      let msg = "Player " + player_allied + ", do you accept Player " + player + " alliance request?"
+      let bool_res = window.confirm(msg);
+      this.handle_alliance_request(bool_res, player, player_allied);
+    
+
     }
 
 
@@ -341,7 +355,7 @@ class GameState extends React.Component {
             <h2>Phase: {this.state.phase}</h2>
             {el_turn}
             <br></br>
-            <GameBoard height="800" width="800" mode={this.state.mode} phase={this.state.phase} player={this.state.player_num} support_map={this.state.support_graph} request_support_callback={this.handle_request_support} signal_move_done={this.switch_turns} create_adjacency={this.create_adjacency} create_province_map={this.create_province_map} logging_callback={this.log_event}/>
+            <GameBoard height="800" width="800" mode={this.state.mode} phase={this.state.phase} turn={this.state.current_turn} player={this.state.player_num} support_map={this.state.support_graph} request_support_callback={this.handle_request_support} signal_move_done={this.switch_turns} create_adjacency={this.create_adjacency} create_province_map={this.create_province_map} logging_callback={this.log_event}/>
             {el}
             <h2>Event Log</h2>
             <div>

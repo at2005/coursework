@@ -98,7 +98,7 @@ class GameBoard extends React.Component {
     return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))    
 
   }
-
+  
   manhattan_distance(p1_lst, p2_lst) {
     let x1 = p1_lst[0];
     let y1 = p1_lst[1];
@@ -106,6 +106,7 @@ class GameBoard extends React.Component {
     let y2 = p2_lst[1];
     return Math.abs(x1 - x2) + Math.abs(y1 - y2);
   }
+  
   
   check_approx(coord, coords) {
     let dist_min = 100;
@@ -427,14 +428,17 @@ class GameBoard extends React.Component {
 
     }
 
+
     // execute move
-    let is_error = prov_current.occupier.move(0, prov_target, this.props.support_map, this.adjacency_map, this.province_map, this.props.request_support_callback, this.props.logging_callback);
+    let is_error = prov_current.occupier.move(this.props.turn, prov_target, this.props.support_map, this.adjacency_map, this.province_map, this.props.request_support_callback, this.props.logging_callback);
     
     // wait if error 
     if(!is_error) {
       this.update_your_provinces();
       this.plot_all_units();
+
       this.props.signal_move_done();
+
     }
     
     
@@ -457,21 +461,6 @@ class GameBoard extends React.Component {
     // );
   }
 
-  
-  // for multiplayer, don't worry until later
-  get_recent_move() {
-    fetch('http://localhost:3005/get_move')
-    .then(response => response.json())
-    .then(data => {
-      console.log('Success:', data);
-    }
-    )
-    .catch((error) => {
-      console.error('Error:', error);
-    }
-    );
-  }
-
   update_init(e) {
     e.preventDefault();
     this.plot_all_units();
@@ -483,7 +472,7 @@ class GameBoard extends React.Component {
     let your_provinces = [];
     let provinces_all = Object.values(this.province_map);
     for(let i = 0; i < provinces_all.length; i++) {
-      if(provinces_all[i].occupier.state.player_owner === 0) {
+      if(provinces_all[i].occupier.state.player_owner === this.props.turn) {
         your_provinces.push(provinces_all[i].get_name);
       }
     }
