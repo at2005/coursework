@@ -12,8 +12,7 @@ class DiplomaticStage extends React.Component {
       this.finalize_turn = this.finalize_turn.bind(this);
 
     }
-
-
+        
     // for simulation mode only
     componentDidMount() {
       if(this.props.mode === "sim") {

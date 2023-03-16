@@ -19,7 +19,6 @@ class GameState extends React.Component {
         players: [new AIPlayer(1,1,1,1), new AIPlayer(2,1,1,1), new AIPlayer(3,1,1,1), new AIPlayer(4,1,1,1)],
         current_turn: 0,
         diplomatic_outcomes: [],
-        movements: [],
         adjacency_map: {},
         province_map: {},
         outcome_arr: [],
@@ -30,6 +29,7 @@ class GameState extends React.Component {
         
       };
 
+      this.movements = [];
 
       this.handle_order_change = this.handle_order_change.bind(this);
       this.handle_request_support = this.handle_request_support.bind(this);
@@ -72,7 +72,7 @@ class GameState extends React.Component {
         
 
       }
-      
+     
       this.setState({mode: new_mode});
     }
 
@@ -101,10 +101,12 @@ class GameState extends React.Component {
 
     log_event(event) {
       // aler//t(event);
-      let el = <p key={this.state.movements.length}>{event}</p>
-      let temp_lst = this.state.movements;
-      temp_lst.push(el);
-      this.setState({movements: temp_lst});
+      let el = <p key={Math.random()}>{event}</p>
+      this.movements.push(el);
+    
+      // this.setState(prevState => ({
+      //   movements: [...prevState.movements, el]
+      // }));
     }
 
     
@@ -156,6 +158,12 @@ class GameState extends React.Component {
 
     // for going around to each player after their move is executed
     switch_turns() {
+      
+      if(this.state.year >= 2400) { 
+        this.setState({is_over: true});
+        return;
+      }
+
       if(this.state.current_turn < 4) {
         this.setState((state, props) => ({
           current_turn: state.current_turn + 1
@@ -309,9 +317,9 @@ class GameState extends React.Component {
       
 
       // get each event and store as JSON
-      for(let event = 0; event < this.state.movements.length; event++) {
+      for(let event = 0; event < this.movements.length; event++) {
         // get string associated with HTML element
-        let event_msg = this.state.movements[event].props.children;
+        let event_msg = this.movements[event].props.children;
         data["event" + event.toString()] = event_msg;
       }
       
@@ -359,7 +367,7 @@ class GameState extends React.Component {
             {el}
             <h2>Event Log</h2>
             <div>
-              {this.state.movements}     
+              {this.movements}     
             </div>     
           </div>;
 
@@ -368,7 +376,7 @@ class GameState extends React.Component {
         <div>
           <h2>Game Over. Player {this.state.winner} won.</h2>
           <h3>Event Log</h3>
-          {this.state.movements}
+          {this.movements}
         </div>
         );
         

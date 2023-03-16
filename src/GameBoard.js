@@ -61,7 +61,6 @@ class GameBoard extends React.Component {
       "Canis Minor" : [],
     };
 
-  
 
     // this.province_coord_lookup = {
 
@@ -137,7 +136,13 @@ class GameBoard extends React.Component {
     return coords;
   }
     
-    
+
+
+
+
+
+
+  
   // map coordinates to Province objects
   create_provinces() {
     // get coordinates
@@ -188,6 +193,8 @@ class GameBoard extends React.Component {
     return provinces;
 
   }
+
+
 
   plot_unit(unit) {
     // plot img on canvas
@@ -301,6 +308,7 @@ class GameBoard extends React.Component {
     }
 
     this.props.create_adjacency(this.adjacency_map);
+    // console.log(this.adjacency_map);
 
   }
 

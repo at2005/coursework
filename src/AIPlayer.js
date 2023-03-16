@@ -104,7 +104,7 @@ class AIPlayer {
         h1_payoff /= 2*(this.player_opinions[province_to.occupier.state.player_owner.toString()].score);
         return h1_payoff;
     }
-
+    
 
     // quantify shared borders
     calculate_h2_payoff(province_requesting_owner, province_map, adj_map) {
@@ -137,6 +137,7 @@ class AIPlayer {
         
     }
 
+    
 
     calculate_payoff_individual(province_from, province_to, bordering_target, support_map) {
         let support_attack = 1; 
