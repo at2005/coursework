@@ -36,15 +36,25 @@ class Unit {//extends React.Component {
     }
   
     // movement logic
-    move(player_id, target_province, support_map, adj_map, province_map, request_support_callback, logging_callback) {
-    
+    move(player_id, target_province, support_map, adj_map, province_map, request_support_callback, logging_callback, callback_finished=null) {
+     
+
       let current_province_owner = this.state.player_owner;
       let target_province_owner = target_province.occupier.state.player_owner;
 
 
+      let true_promise = new Promise((resolve, reject) => {
+        resolve(true);
+      });
+
+      let false_promise = new Promise((resolve, reject) => {
+        resolve(false);
+      });
+
       // check if you are moving to your own province
       if(target_province_owner === current_province_owner) {
         logging_callback("You cannot move to this province, you already own it");
+        
         return true;
       }
 
@@ -75,40 +85,41 @@ class Unit {//extends React.Component {
 
         // if you own neighbouring provinces you can support yourself
         if(bordering_province.occupier.state.player_owner === this.state.player_owner) { 
-          logging_callback("Player " + current_province_owner.toString() + " owns a bordering province, so gave themselves support");
+          logging_callback("Player " + (current_province_owner+1).toString() + " owns a bordering province, so gave themselves support");
           support++; 
           continue;
         }
 
         // if enemy owns neighbouring provinces, then supports themselves
         if(bordering_province.occupier.state.player_owner === target_province_owner) {
-          logging_callback("Player " + target_province_owner.toString() + " owns a bordering province, so gave themselves support");
+          logging_callback("Player " + (target_province_owner+1).toString() + " owns a bordering province, so gave themselves support");
           enemy_support++;
           continue;
         }
 
         // get support from bordering province
         if(support_map[current_province_owner.toString()].includes(bordering_province.occupier.state.player_owner.toString())) {
+         
         let support_is_given = request_support_callback(this.state.current_province, target_province, bordering_province);
           if(support_is_given) {
-            logging_callback("Support was given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + current_province_owner.toString() + " for Player " + current_province_owner.toString() + " to move to " + target_province.get_name);
+            logging_callback("Support was given by Player " + (bordering_province.occupier.state.player_owner+1).toString() + " to Player " + (current_province_owner+1).toString() + " for Player " + (current_province_owner+1).toString() + " to move to " + target_province.get_name);
             support++;
             continue;
           }
 
-          logging_callback("Support was not given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + current_province_owner.toString() + " for Player " + current_province_owner.toString() + " to move to " + target_province.get_name);
+          logging_callback("Support was not given by Player " + (bordering_province.occupier.state.player_owner+1).toString() + " to Player " + (current_province_owner+1).toString() + " for Player " + (current_province_owner+1).toString() + " to move to " + target_province.get_name);
         }
 
        
         if(support_map[target_province_owner.toString()].includes(bordering_province.occupier.state.player_owner.toString())) {
           let support_given_enemy = request_support_callback(this.state.current_province, target_province, bordering_province);
           if(support_given_enemy) {
-            logging_callback("Support was given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + target_province_owner.toString() + " for Player " + target_province_owner.toString() + " to resist invasion by " + current_province_owner);
+            logging_callback("Support was given by Player " + (bordering_province.occupier.state.player_owner+1).toString() + " to Player " + (target_province_owner+1).toString() + " for Player " + (target_province_owner+1).toString() + " to resist invasion by " + (Number(current_province_owner)+1).toString());
             enemy_support++;
             continue;
           }
 
-            logging_callback("Support was not given by Player " + bordering_province.occupier.state.player_owner.toString() + " to Player " + target_province_owner.toString() + " for Player " + target_province_owner.toString() + " to resist invasion by " + current_province_owner);
+            logging_callback("Support was not given by Player " + (bordering_province.occupier.state.player_owner+1).toString() + " to Player " + (target_province_owner+1).toString() + " for Player " + (target_province_owner+1).toString() + " to resist invasion by " + (Number(current_province_owner)+1).toString());
         } 
       }
     
@@ -124,12 +135,11 @@ class Unit {//extends React.Component {
         
         target_province_actual.set_occupier(new_unit);
         this.update_board();
-        logging_callback(current_province_owner.toString() + " successfully moved to this province");
-        
+        logging_callback((current_province_owner+1).toString() + " successfully moved to this province");
         return false;
       }
 
-      logging_callback(current_province_owner.toString() + " cannot move to this province, does not have enough support");
+      logging_callback((current_province_owner+1).toString() + " cannot move to this province, does not have enough support");
       return true;
 
     }

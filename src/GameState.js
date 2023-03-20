@@ -26,10 +26,12 @@ class GameState extends React.Component {
         player0 : null,
         winner: null,
         corrective_factor: 1,
+        movements: [],
         
       };
 
       this.movements = [];
+      this.current_turn = 0;
 
       this.handle_order_change = this.handle_order_change.bind(this);
       this.handle_request_support = this.handle_request_support.bind(this);
@@ -40,6 +42,7 @@ class GameState extends React.Component {
       this.log_event = this.log_event.bind(this);
       this.signal_player_destroyed = this.signal_player_destroyed.bind(this);
       this.set_mode = this.set_mode.bind(this);
+      this.execute_turn = this.execute_turn.bind(this);
       
     }
     
@@ -69,8 +72,7 @@ class GameState extends React.Component {
         // insert zeroth player at start of list
         players_sim.unshift(new AIPlayer(0,1,1,1));
         this.setState({players: players_sim, corrective_factor: 0});
-        
-
+      
       }
      
       this.setState({mode: new_mode});
@@ -100,38 +102,64 @@ class GameState extends React.Component {
 
 
     log_event(event) {
-      // aler//t(event);
       let el = <p key={Math.random()}>{event}</p>
+      // this.state.movements.push(el);
       this.movements.push(el);
-    
-      // this.setState(prevState => ({
-      //   movements: [...prevState.movements, el]
-      // }));
+      
+      if(this.state.mode !== "sim") {
+        this.setState(prevState => ({
+          movements: [...prevState.movements, el]
+        }));
+      }
     }
 
     
     handle_alliance_request(boolean_response, player, player_allied) {
+
       if(boolean_response) {
-        let support_map = this.state.support_graph;
-        support_map[player].push(player_allied);
-        this.setState({support_graph : support_map});
-        let message = ("Player " + player_allied.toString() + " accepted Player " + player.toString() + " alliance request");
+        let new_support_graph = this.state.support_graph;
+        new_support_graph[player].push(player_allied.toString());
+        new_support_graph[player_allied].push(player.toString());
+
+        this.setState((state, props) => {
+          return {
+            support_graph: new_support_graph,
+          };
+        });
+        
+        // let new_support_graph = this.state.support_graph;
+        // new_support_graph[player].push(player_allied);
+        // new_support_graph[player_allied].push(player);
+        
+        let message = ("Player " + (Number(player_allied)+1).toString() + " accepted Player " + (Number(player)+1).toString() + " alliance request");
         this.log_event(message);
         return;
       }
 
-      let message = ("Player " + player_allied.toString() + " rejected Player " + player.toString() + " alliance request");
+      this.setState({support_graph: this.state.support_graph});
+      let message = ("Player " + (Number(player_allied)+1).toString() + " rejected Player " + (Number(player)+1).toString() + " alliance request");
       this.log_event(message);
+     
     }
 
 
     // this function is callback which is called from a unit requesting support from another player
     handle_request_support(province_requesting, target_province, supporting_province) {
-      let computer = this.state.players[supporting_province.occupier.state.player_owner - this.state.corrective_factor];
-      let bool_result = computer.request_for_support(province_requesting, target_province, this.state.province_map, this.state.adjacency_map, this.state.support_graph);
-     
+      let bool_result = 0;
+
+      if((supporting_province.occupier.state.player_owner === 0 && this.state.mode === "single") || this.state.mode === "multi") {
+        let msg = ("Player " + (province_requesting.occupier.state.player_owner + 1).toString() + " is requesting support from Player 1 to move to " + target_province.name + " from " + province_requesting.name + ". Give Support?");
+        bool_result = window.confirm(msg);
+      }
+
+      else {
+        
+        let computer = this.state.players[supporting_province.occupier.state.player_owner - this.state.corrective_factor];
+        bool_result = computer.request_for_support(province_requesting, target_province, this.state.province_map, this.state.adjacency_map, this.state.support_graph);
+      }
+
       
-      if((this.state.mode === "sim") || (province_requesting.occupier.state.player_owner !== 0 && this.state.mode !== "sim")) {
+      if((this.state.mode === "sim") || (province_requesting.occupier.state.player_owner !== this.state.current_turn && this.state.mode !== "sim")) {
         //console.log(province_requesting.occupier.state.player_owner - this.state.corrective_factor);
         let computer2 = this.state.players[province_requesting.occupier.state.player_owner - this.state.corrective_factor];
         
@@ -144,16 +172,21 @@ class GameState extends React.Component {
         }
       
       }
-
+ 
       return bool_result;
     }
 
 
     // this function is called whenever current turn is updated and gets computer player to execute their move 
     execute_turn() {
+      console.log(this.state.province_map);
       let computer = this.state.players[this.state.current_turn - this.state.corrective_factor];
-      computer.execute_move(this.state.current_turn, this.state.support_graph, this.state.adjacency_map, this.state.province_map, this.handle_request_support, this.log_event, this.signal_player_destroyed);
-      this.switch_turns();  
+      computer.execute_move(this.state.current_turn, this.state.support_graph, this.state.adjacency_map, this.state.province_map, this.handle_request_support, this.log_event, this.signal_player_destroyed, this.switch_turns);
+      
+      // setTimeout(() => {
+      this.switch_turns();
+      // }, 1000);
+       
     }
 
     // for going around to each player after their move is executed
@@ -165,6 +198,7 @@ class GameState extends React.Component {
       }
 
       if(this.state.current_turn < 4) {
+        setTimeout(() => {
         this.setState((state, props) => ({
           current_turn: state.current_turn + 1
         }), () => {
@@ -176,7 +210,7 @@ class GameState extends React.Component {
 
           if(bool_game_over) {
             this.setState({is_over: true, winner: winner_game});
-            this.log_event("won " + winner_game.toString());
+            this.log_event("won " + (winner_game+1).toString());
             
             if(this.state.mode === "sim") {
               this.post_event_log();
@@ -200,11 +234,13 @@ class GameState extends React.Component {
 
 
         });
+      }, 5000);
 
         // this.execute_turn();
         return;
       }
     
+      setTimeout(() => {
       this.setState({current_turn: 0}, () => {
         if(this.state.mode === "sim") {
           this.execute_turn();
@@ -213,6 +249,7 @@ class GameState extends React.Component {
         this.inc_period();
 
       });
+    }, 10);
 
         
     }
@@ -268,20 +305,26 @@ class GameState extends React.Component {
     // handle diplomatic orders for human player
     handle_order_change(player, player_allied) {
       // input validation
-      if(player_allied > 4) {
+      if(player_allied > 4 || player_allied < 0) {
         alert("Invalid Player Number");
         return;
       }
 
+      if(player_allied === player) {
+        alert("Cannot ally with self");
+        return;
+      }
 
-      if(this.state.mode !== "multi") {      
+
+      if(this.state.mode !== "multi" && !(this.state.mode === "single" && player_allied === 0)) {
+
         let computer = this.state.players[player_allied-this.state.corrective_factor];
         computer.accept_alliance(this.handle_alliance_request.bind(this), player, player_allied);
         return;
       }
 
       // for multiplayer, have pop-up menu
-      let msg = "Player " + player_allied + ", do you accept Player " + player + " alliance request?"
+      let msg = "Player " + (Number(player_allied)+1).toString() + ", do you accept Player " + (Number(player+1)).toString() + " alliance request?"
       let bool_res = window.confirm(msg);
       this.handle_alliance_request(bool_res, player, player_allied);
     
@@ -336,12 +379,13 @@ class GameState extends React.Component {
       }).catch((err) => {
         console.log(err);
       });
-      
+
     } 
 
 
 
-    render() {  
+    render() { 
+      let movements = this.state.mode === "sim" ? this.movements : this.state.movements; 
       // let el = <GameBoard/>;
       let el = this.state.phase === "Diplomatic" ? (
           <div>
@@ -357,24 +401,32 @@ class GameState extends React.Component {
 
 
         let main_game_el = 
-          <div>
+          <div id="container_game">
+            <div id="c1">
+
+              <br></br>
+              <GameBoard height="800" width="800" mode={this.state.mode} phase={this.state.phase} turn={this.state.current_turn} player={this.state.player_num} support_map={this.state.support_graph} request_support_callback={this.handle_request_support} signal_move_done={this.switch_turns} start_ai={this.execute_turn} create_adjacency={this.create_adjacency} create_province_map={this.create_province_map} logging_callback={this.log_event}/>
+              {el}
+            </div>
+            
+            <div id="event_log">
             <h2>Year: {this.state.year}</h2>
-            <h2>Period: {this.state.period}</h2>
-            <h2>Phase: {this.state.phase}</h2>
-            {el_turn}
-            <br></br>
-            <GameBoard height="800" width="800" mode={this.state.mode} phase={this.state.phase} turn={this.state.current_turn} player={this.state.player_num} support_map={this.state.support_graph} request_support_callback={this.handle_request_support} signal_move_done={this.switch_turns} create_adjacency={this.create_adjacency} create_province_map={this.create_province_map} logging_callback={this.log_event}/>
-            {el}
-            <h2>Event Log</h2>
-            <div>
-              {this.movements}     
-            </div>     
+              <h2>Period: {this.state.period}</h2>
+              <h2>Phase: {this.state.phase}</h2>
+              {el_turn}
+              <br></br>
+              <br></br>
+              <h2><u>Event Log</u></h2>
+              <div>
+                {movements}     
+              </div>
+            </div>
           </div>;
 
         let current_screen = this.state.mode === "start" ? <Start set_mode={this.set_mode.bind(this)}/> : main_game_el;
         let current_game_screen_over = this.state.is_over === false ? current_screen : (
         <div>
-          <h2>Game Over. Player {this.state.winner} won.</h2>
+          <h2>Game Over. Player {this.state.winner+1} won.</h2>
           <h3>Event Log</h3>
           {this.movements}
         </div>

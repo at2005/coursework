@@ -80,3 +80,22 @@ input {
   display: grid;
   /* colou/ */
 }
+
+
+#container_game {
+  display: grid;
+  grid-template-columns: 78% 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "c1 event_log";
+}
+
+
+#c1 {
+  grid-area: c1;
+
+}
+
+#event_log {
+  border:2px solid black;
+  grid-area: event_log;
+}

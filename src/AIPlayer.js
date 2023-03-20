@@ -208,10 +208,11 @@ class AIPlayer {
 
 
     // make a move
-    execute_move(player_id, support_map, adj_map, province_map, request_support_callback, logging_callback, signal_destroyed_self) {
+     execute_move(player_id, support_map, adj_map, province_map, request_support_callback, logging_callback, signal_destroyed_self, callback_finished) {
         
         let available_provinces = this.get_available_provinces(province_map, player_id);
 
+        
         let arr = this.calculate_payoff_overall(available_provinces, province_map, adj_map, support_map);
         let province_chosen = arr[0];
         let target_province = arr[1];
@@ -222,13 +223,8 @@ class AIPlayer {
             return;
         }
         
-        let is_error = province_chosen.occupier.move(player_id, target_province, support_map, adj_map, province_map, request_support_callback, logging_callback);
+        province_chosen.occupier.move(player_id, target_province, support_map, adj_map, province_map, request_support_callback, logging_callback, callback_finished);
         
-        if(is_error) {
-            console.log("Error");
-            // this.execute_move(player_id, support_map, adj_map, province_map, request_support_callback);
-        }
-
     }
 
     // calculate payoff for supporting ally
@@ -274,11 +270,11 @@ class AIPlayer {
             
             this.account_alliance(player);
 
-            accept_alliance_callback(true, player, player_allied);
+            accept_alliance_callback(true, player.toString(), player_allied);
             return;
         }
     
-       accept_alliance_callback(false, player, player_allied);
+       accept_alliance_callback(false, player.toString(), player_allied);
     }
 
 

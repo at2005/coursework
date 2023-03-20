@@ -88,7 +88,7 @@ class GameBoard extends React.Component {
   }
 
 
-  // different distance measures
+  // euclidean distance between two points
   euclidean_distance(p1_lst, p2_lst) {
     let x1 = p1_lst[0];
     let y1 = p1_lst[1];
@@ -98,6 +98,7 @@ class GameBoard extends React.Component {
 
   }
   
+  // manhattan distance between two points
   manhattan_distance(p1_lst, p2_lst) {
     let x1 = p1_lst[0];
     let y1 = p1_lst[1];
@@ -106,7 +107,7 @@ class GameBoard extends React.Component {
     return Math.abs(x1 - x2) + Math.abs(y1 - y2);
   }
   
-  
+  // check if coordinate within proximity of other coordinates
   check_approx(coord, coords) {
     let dist_min = 100;
     for(let i = 0; i < coords.length; i++) {
@@ -118,16 +119,18 @@ class GameBoard extends React.Component {
     return true;
   }
 
-  // use voronoi noise to generate province regions/boundaries
+  // use voronoi noise to generate province regions/boundaries, scatter 15 points randomly across the board, evenly spaced using check_approx()
   scatter_points() {
     // scatter voronoi points randomly
     let coords = [];
     for(let i = 0; i < this.num_provinces; i++) {
       let coord = [Math.floor(Math.random() * (this.width - 50)), Math.floor(Math.random() * (this.height - 50))];
+      // map coordiante if not too close to others (evenly spacing algo)
       if(this.check_approx(coord, coords)) {
         coords[i] = coord;
       }
 
+      // else go back one iteration
       else {
         i -= 1;
       }
@@ -137,18 +140,14 @@ class GameBoard extends React.Component {
   }
     
 
-
-
-
-
-
   
-  // map coordinates to Province objects
+  // map scattered centers to Province objects 
   create_provinces() {
     // get coordinates
     let province_lst = [];
     let province_coords = this.scatter_points();
     for(let i = 0; i < this.num_provinces; i++) {
+      // create province object for each center basically
       province_lst[i] = new Province(province_coords[i]);
       province_lst[i].set_name = Object.keys(this.province_map)[i];
       this.province_map[province_lst[i].name] = province_lst[i];
@@ -160,7 +159,7 @@ class GameBoard extends React.Component {
 
 
 
-  // map each pixel to Province
+  // map each pixel to Province (Voronoi method)
   map_points() {
     var provinces = this.create_provinces();
     for(let i = 0; i < this.height; i+=(this.granularity)) {
@@ -168,7 +167,7 @@ class GameBoard extends React.Component {
         // iterate over each province
         let province_min = 0;
         for(let prov = 0; prov < this.num_provinces; prov++) {
-          // temporary province as initial
+          // distance measure, converged to 6.2 weight for manhattan distance and 5.5 weight for euclidean distance
           let dist = 6.2 * this.manhattan_distance([i,j], provinces[prov].get_center) + this.euclidean_distance([i,j], provinces[prov].get_center) * 5.5;
           provinces[prov].update_dist = (dist);
           
@@ -176,7 +175,7 @@ class GameBoard extends React.Component {
            continue;
           }
 
-          // console.log(dist);
+          // if within minimum distance, then update province to be assigned to 
           if(dist <= provinces[province_min].get_dist) {
             province_min = prov;
           }
@@ -195,7 +194,7 @@ class GameBoard extends React.Component {
   }
 
 
-
+  // plot a single unit, modelling an army piece on the board as a rectangle
   plot_unit(unit) {
     // plot img on canvas
     const canvas = this.canvasRef.current;
@@ -215,6 +214,7 @@ class GameBoard extends React.Component {
   }
  
 
+  // helper function to plot all units, should be called at the start
   plot_all_units() {
     // get all values of this.province_map
     let provinces = Object.values(this.province_map);
@@ -227,6 +227,7 @@ class GameBoard extends React.Component {
     } 
   }
   
+  // random colour for each province
   gen_random_rgb() {
     let r = Math.floor(Math.random() * 255);
     let g = Math.floor(Math.random() * 255);
@@ -295,7 +296,6 @@ class GameBoard extends React.Component {
           for(let reg_coord2 = 0; reg_coord2 < region_lst_prov2.length; reg_coord2+=5) {
             let dist = this.euclidean_distance(region_lst_prov1[reg_coord1], region_lst_prov2[reg_coord2]);
             // verification and creating adjacency map
-            // console.log(dist);
             if(Math.abs(dist) < Math.abs(min_dist)) {
               // console.log(dist);
               this.adjacency_map[province_lst[i].name].push(province_lst[j].name);
@@ -345,10 +345,12 @@ class GameBoard extends React.Component {
     let corner_lst = [[0,0], [0, this.height], [this.width, 0], [this.width, this.height], [this.width/2, this.height/2]];
     let provinces_temp = [];
 
+    // this is for assigning provinces to players, remove province from list after assignment so everyone gets equal amount
     // create deep copy
     for(let i = 0; i < provinces.length; i++) {
       provinces_temp[i] = provinces[i];
     }
+
 
     for(let i = 0; i < corner_lst.length; i++) {
       let closest_four = this.closest_provinces(corner_lst[i][0], corner_lst[i][1], provinces_temp);
@@ -365,39 +367,37 @@ class GameBoard extends React.Component {
     }
 
     for(let i = 0; i < provinces.length; i++) {
-      // console.log(provinces[i].occupier.state.colour);
-      // provinces[i].center = this.get_average_center(provinces[i].get_region_lst);
       this.province_map[provinces[i].get_name] = provinces[i];
-      // this.province_coord_lookup[provinces[i].center] = provinces[i].get_name; 
     }
 
-
-    // console.log(this.province_coord_lookup);
-
-    // map adjacency
+    // create adjacency map
     this.map_adjacency(provinces);
-    // console.log(this.adjacency_map);
 
     // plot all units
     this.plot_all_units();
     this.props.create_province_map(this.province_map);
 
+    // automatically start game if in simulation mode
     if(this.props.mode === "sim") {
-      this.props.signal_move_done();
+      // wait for 2 seconds before starting 
+      setTimeout(() => {
+        this.props.start_ai();
+      }, 2000);
+      
     }
+
 
   }
 
   
   // input validation
-  validate_inputs(type, location_a, location_b) {
+  validate_inputs(location_a, location_b) {
     // First input
-    if(type === "Army" || type === "Fleet") {
       // second input and third input
-      if(location_a in this.province_map && location_b in this.province_map) {
-        return true;
-      }
+    if(location_a in this.province_map && location_b in this.province_map) {
+      return true;
     }
+    
 
    return false;
   
@@ -408,13 +408,12 @@ class GameBoard extends React.Component {
   async post_move(e) {
     e.preventDefault();
     const data = {
-      unit_a_type : document.getElementById("ua_type").value,
       unit_a_cloc : document.getElementById("ua_current").value,
       unit_a_tloc : document.getElementById("ua_target").value,
     }
 
     // validate inputs and raise error if invalid
-    if(!this.validate_inputs(data.unit_a_type, data.unit_a_cloc, data.unit_a_tloc)) {
+    if(!this.validate_inputs(data.unit_a_cloc, data.unit_a_tloc)) {
       alert("Invalid input");
     }
 
@@ -449,24 +448,6 @@ class GameBoard extends React.Component {
 
     }
     
-    
-    // // post data to server at port 3005
-    // await fetch('http://localhost:3005/write_move', { 
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(data),
-    // })
-    // .then(response => response.json())
-    // .then(data => {
-    //   console.log('Success:', data);
-    // }
-    // )
-    // .catch((error) => {
-    //   console.error('Error:', error);
-    // }
-    // );
   }
 
   update_init(e) {
@@ -491,22 +472,23 @@ class GameBoard extends React.Component {
   }
 
   render() {
-    let mapped_names = this.state.your_provinces.map((province) => <li key={province}>{province}</li>);
+    // let mapped_names = this.state.your_provinces.map((province) => <li key={province}>{province}</li>);
     let owner_hover_el = null;
     if(this.state.hovering_province) {
       let owner = this.province_map[this.state.hovering_province].occupier.state.player_owner;
-      owner_hover_el = <h2>Owned by Player {owner}</h2>
+      owner_hover_el = <h2>Owned by Player {owner + 1}</h2>
     }
 
     let order_box = this.props.phase === "Order" ? (
     <div id="order_box">
-      <h1>Order Input</h1>
+      <h1><u>Input Move Order</u></h1>
       <form>
-        <input name="unit_a_type" id="ua_type" defaultValue="Army"></input>
+        <label>From:</label>
         <input name="unit_a_cloc" id="ua_current" defaultValue = "Saggitarius"></input>
+        <label>To:</label>
         <input name="unit_a_tloc" id="ua_target" defaultValue="Perseus"></input> <br></br>
         <button type = "submit" onClick={this.post_move.bind(this)}>Submit Order</button> <br></br>
-        <button onClick={this.update_init}>Update</button>
+        <button onClick={this.update_init}>Start Game</button>
         <br>
         </br>
       </form>
@@ -516,29 +498,24 @@ class GameBoard extends React.Component {
 
     return (
       <div>
-      <h1>Diplomacy</h1>
+        <h1>Diplomacy</h1>
 
         <canvas ref={this.canvasRef} onMouseMove={this._onMouseMove} width={this.props.width} height={this.props.height} />
-        
+          
         <div>
-        
-        {order_box}
-  
           <h2>Hovering Province: {this.state.hovering_province}</h2>
           {owner_hover_el}
-        
-        <br>
-        </br>
-        <br></br>
-
-        <h1>Your Provinces</h1>
-          <div>
-            <ul>
-             {mapped_names}
-            </ul>
-          </div>
+          <br></br>
+          <br></br>
+          {order_box}
+    
+          {/* <h1>Your Provinces</h1> */}
+            {/* <div> */}
+              {/* <ul> */}
+              {/* {mapped_names} */}
+              {/* </ul> */}
+            {/* </div> */}
       </div>
-
     </div>
     );
   }

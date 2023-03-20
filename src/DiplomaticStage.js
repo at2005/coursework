@@ -33,11 +33,11 @@ class DiplomaticStage extends React.Component {
       let val = document.getElementById("player_id").value;
     
       if(this.props.mode !== "multi") {  
-        this.props.onChange(this.props.player, val);
+        this.props.onChange(this.props.player, val - 1);
         return;
       }
       
-      this.props.onChange(this.state.current_diplomatic, val);
+      this.props.onChange(this.state.current_diplomatic, val - 1);
 
     }
 
