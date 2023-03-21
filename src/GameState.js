@@ -45,15 +45,19 @@ class GameState extends React.Component {
       this.execute_turn = this.execute_turn.bind(this);
       
     }
+   
     
     
+    // allows completion of the game -- basic requirement 1
     check_game_over() {
       let score_arr = [0, 0, 0, 0, 0];
+      // iterate over each province and count no. provinces owned by each
       let provinces = Object.keys(this.state.province_map);
       for(let i = 0; i < provinces.length; i++) {
         score_arr[this.state.province_map[provinces[i]].occupier.state.player_owner] += 1;
       }
 
+      // if any province owns greater than 7 provinces then end game
       for(let i = 0; i < score_arr.length; i++) {
         if (score_arr[i] >= 7) {
           return [true, i];
@@ -148,7 +152,7 @@ class GameState extends React.Component {
       let bool_result = 0;
 
       if((supporting_province.occupier.state.player_owner === 0 && this.state.mode === "single") || this.state.mode === "multi") {
-        let msg = ("Player " + (province_requesting.occupier.state.player_owner + 1).toString() + " is requesting support from Player 1 to move to " + target_province.name + " from " + province_requesting.name + ". Give Support?");
+        let msg = ("Player " + (province_requesting.occupier.state.player_owner + 1).toString() + " is requesting support from Player " + (supporting_province.occupier.state.player_owner+1).toString() + " to move to " + target_province.name + " from " + province_requesting.name + ". Give Support?");
         bool_result = window.confirm(msg);
       }
 
@@ -304,7 +308,7 @@ class GameState extends React.Component {
 
     // handle diplomatic orders for human player
     handle_order_change(player, player_allied) {
-      // input validation
+      // input validation -- basic requirement 2
       if(player_allied > 4 || player_allied < 0) {
         alert("Invalid Player Number");
         return;

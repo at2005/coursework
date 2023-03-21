@@ -24,7 +24,11 @@ class DiplomaticStage extends React.Component {
     finalize_turn() {
       this.setState((state, props) => ({
         current_diplomatic: state.current_diplomatic + 1
-      }), () => {console.log("success");});
+      }), () => {
+        if(this.state.current_diplomatic > 5) {
+          alert("Cannot be more than 5 players!");
+        }
+      });
     }
     
     
@@ -42,15 +46,16 @@ class DiplomaticStage extends React.Component {
     }
 
     render() {
-      let finalize_element = this.props.mode === "multi" ? <button onClick={this.finalize_turn}>Finalize Player {this.state.current_diplomatic} Alliances</button>  :  <button onClick={this.props.make_AI_alliances_callback}>Finalize</button> 
+      let finalize_element = this.props.mode === "multi" ? <button onClick={this.finalize_turn}>Finalize Player {this.state.current_diplomatic + 1} Alliances</button>  :  <button onClick={this.props.make_AI_alliances_callback}>Finalize</button> 
       return (
       <div>
         <h1>Diplomatic Stage</h1>
         <form onSubmit={this.handleSubmit}>
+          <label name="player_id">Player Number: </label>
           <input id="player_id"></input>
           <button>Send Request</button>
-          {finalize_element}
         </form>
+        {finalize_element}
       </div>
       );
     }

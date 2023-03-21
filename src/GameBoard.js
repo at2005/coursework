@@ -119,11 +119,14 @@ class GameBoard extends React.Component {
     return true;
   }
 
+
+  // code helps create model of the Diplomacy Game Board
   // use voronoi noise to generate province regions/boundaries, scatter 15 points randomly across the board, evenly spaced using check_approx()
   scatter_points() {
     // scatter voronoi points randomly
     let coords = [];
     for(let i = 0; i < this.num_provinces; i++) {
+      // randomness -- basic requirement no. 1
       let coord = [Math.floor(Math.random() * (this.width - 50)), Math.floor(Math.random() * (this.height - 50))];
       // map coordiante if not too close to others (evenly spacing algo)
       if(this.check_approx(coord, coords)) {
@@ -156,7 +159,6 @@ class GameBoard extends React.Component {
     return province_lst;
 
   }
-
 
 
   // map each pixel to Province (Voronoi method)
@@ -247,7 +249,7 @@ class GameBoard extends React.Component {
     return [sorted_map[0], sorted_map[1], sorted_map[2]];
   }
 
-
+// utility, probably not going to use, dont want to break anything by removing though!
   get_index_from_name(province_name, province_lst) {
     for(let i = 0; i < province_lst.length; i++) {
       if(province_lst[i].name === province_name) {
@@ -256,6 +258,7 @@ class GameBoard extends React.Component {
     }
   }
 
+  // not using this either, will keep it for examination purposes -- calculate centroid of points
   get_average_center(pixel_lst) {
     let x_avg = 0;
     let y_avg = 0;
@@ -268,7 +271,7 @@ class GameBoard extends React.Component {
   
   }
 
-  // ideally only run once because super inefficient
+  // ideally only run once because super inefficient => O(n^2)
   map_adjacency(province_lst) {
     for(let i = 0; i < this.adjacency_map.length; i++) {
       this.adjacency_map[i] = [];
@@ -280,6 +283,7 @@ class GameBoard extends React.Component {
       for(let j = 0; j < province_lst.length; j++) {
         if(i === j) { continue; }
         // console.log(province_lst[j].name, this.adjacency_map[province_lst[i].name]);
+        // if alreqdy in adjacency map then skip to next iteration
         if(this.adjacency_map[province_lst[i].name].includes(province_lst[j].name) || this.adjacency_map[province_lst[j].name].includes(province_lst[i].name)) {
           continue;
         }
@@ -290,14 +294,15 @@ class GameBoard extends React.Component {
         let region_lst_prov2 = province_lst[j].get_region_lst;
         region_lst_prov2 = region_lst_prov2.sort(() => (Math.random() - 0.5));
 
-
+        // label for breaking out of main loop
         break_point:
         for(let reg_coord1 = 0; reg_coord1 < region_lst_prov1.length; reg_coord1+=5) {
           for(let reg_coord2 = 0; reg_coord2 < region_lst_prov2.length; reg_coord2+=5) {
             let dist = this.euclidean_distance(region_lst_prov1[reg_coord1], region_lst_prov2[reg_coord2]);
-            // verification and creating adjacency map
+            // verification of bordering
             if(Math.abs(dist) < Math.abs(min_dist)) {
               // console.log(dist);
+              // fill map
               this.adjacency_map[province_lst[i].name].push(province_lst[j].name);
               this.adjacency_map[province_lst[j].name].push(province_lst[i].name);
               break break_point;
@@ -307,6 +312,7 @@ class GameBoard extends React.Component {
       }
     }
 
+    // callback of parent state (GameState)
     this.props.create_adjacency(this.adjacency_map);
     // console.log(this.adjacency_map);
 
@@ -390,7 +396,7 @@ class GameBoard extends React.Component {
   }
 
   
-  // input validation
+  // input validation -- basic requirement no. 2
   validate_inputs(location_a, location_b) {
     // First input
       // second input and third input

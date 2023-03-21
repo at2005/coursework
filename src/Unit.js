@@ -38,11 +38,10 @@ class Unit {//extends React.Component {
     // movement logic
     move(player_id, target_province, support_map, adj_map, province_map, request_support_callback, logging_callback, callback_finished=null) {
      
-
       let current_province_owner = this.state.player_owner;
       let target_province_owner = target_province.occupier.state.player_owner;
 
-
+      // return Promises in future
       let true_promise = new Promise((resolve, reject) => {
         resolve(true);
       });
@@ -50,6 +49,8 @@ class Unit {//extends React.Component {
       let false_promise = new Promise((resolve, reject) => {
         resolve(false);
       });
+
+      // INPUT VALIDATION START -- basic requirement 2
 
       // check if you are moving to your own province
       if(target_province_owner === current_province_owner) {
@@ -69,6 +70,9 @@ class Unit {//extends React.Component {
         logging_callback("You do not border this province");
         return true;
       }
+
+      // INPUT VALIDATION END -- basic requirement 2
+
       
       // calculate support
       let all_bordering_target = adj_map[target_province.get_name];
@@ -123,6 +127,7 @@ class Unit {//extends React.Component {
         } 
       }
     
+      // snippet of Unit.move() function
       // check if you have support to move to target province
       if(support > enemy_support) { 
         let new_unit = new Unit(this.update_board);

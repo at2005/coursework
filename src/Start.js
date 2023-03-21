@@ -24,6 +24,12 @@ class Start extends React.Component {
                 <h3>The game consists of two phases: Diplomatic and Order. In the Diplomatic phase, you can send alliance requests to other players. In the Order phase,
                    you can move and conquer provinces.
                 </h3>
+                <h3>In the input box during the Diplomatic phase, enter a number from 1-5 to send alliance requests to that player. Results show up in the Event Log. You cannot ally with yourself.</h3>
+                <br></br>
+                <h3>During the Order Stage, there are two input boxes. Where it says "From:", enter the name of the province you wish to move. Where it says "To:",
+                    enter the province name you wish to move to. 
+                </h3>
+
                 <h3>Each turn, a player can move one unit from one province to an adjacent province not owned by the player. This can only be done if the attaacking province has more support 
                 than the defending unit.
                 </h3>

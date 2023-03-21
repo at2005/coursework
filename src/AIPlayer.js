@@ -101,6 +101,8 @@ class AIPlayer {
             }
         }
 
+        // inversely proportional to opinion of enemy => higher opinion, lower payoff (add scale of 2 since we don't want everyone betraying each other
+        // unless they have a low trustworthiness score anyways)
         h1_payoff /= 2*(this.player_opinions[province_to.occupier.state.player_owner.toString()].score);
         return h1_payoff;
     }
@@ -111,19 +113,22 @@ class AIPlayer {
         let provinces = Object.keys(province_map);
         let your_provinces = [];
         let their_provinces = [];
-       
+        
         for(let prov_name = 0; prov_name < provinces.length; prov_name++) {
             let province = province_map[provinces[prov_name]];
             
+            // get your provinces
             if(province.occupier.state.player_owner === this.player_id) {
                 your_provinces.push(province);
             }
 
+            // get other players' provinces
             else if(province.occupier.state.player_owner === province_requesting_owner) {
                 their_provinces.push(province);
             }
         }
 
+        // check for shared borders
         let h2_payoff = 0;
         for(let i = 0; i < your_provinces.length; i++) {
             for(let j = 0; j < their_provinces.length; j++) {
