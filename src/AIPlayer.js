@@ -3,11 +3,15 @@ import PlayerOpinion from "./PlayerOpinion";
 class AIPlayer {
     constructor(player_id, trustworthiness, trusting, expansionist) {
         this.player_lst = [];
+        
+        // Change parameters within the game to test hypotheses
+
+        // for testing Hypothesis #2
         this.trustworthiness = Math.random();
-        this.trusting = Math.random();
-        this.expansionist = Math.random();
+
+        // for testing Hypothesis #3
         this.likelihood_of_alliance = Math.random();
-        this.isolationist = Math.random();
+        
         this.player_id = player_id;
         this.player_opinions = {};
     
@@ -21,6 +25,9 @@ class AIPlayer {
                 this.player_opinions[i.toString()] = new PlayerOpinion(i);
             }
         }
+        // this.trusting = Math.random();
+        // this.expansionist = Math.random();
+        // this.isolationist = Math.random();
     }
     
 

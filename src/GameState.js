@@ -104,7 +104,7 @@ class GameState extends React.Component {
       this.setState({phase: "Diplomatic"});
     }
 
-
+    // logs event
     log_event(event) {
       let el = <p key={Math.random()}>{event}</p>
       // this.state.movements.push(el);
@@ -202,6 +202,7 @@ class GameState extends React.Component {
       }
 
       if(this.state.current_turn < 4) {
+        // add delay because state cannot be updated multiple times a second
         setTimeout(() => {
         this.setState((state, props) => ({
           current_turn: state.current_turn + 1
@@ -282,7 +283,7 @@ class GameState extends React.Component {
   
     }
   
-    
+    // eh not going to use this beyond order tbh
     inc_phase() {
       if (this.state.phase === "Diplomatic") {
         this.setState({phase: "Order"});
